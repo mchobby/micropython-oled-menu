@@ -78,7 +78,7 @@ class MenuItem:
 #   MENU controler
 # ------------------------------------------------------------------------------
 
-class IntControler:
+class RangeControler:
 	__slots__ = ( "owner", "parent", "min_val","max_val", "step", "default_val" )
 
 	def __init__(self, owner, parent, min_val, max_val, step, default_value ):
@@ -168,10 +168,10 @@ class OLED_MENU:
 		self.items.append( menu_item )
 		return menu_item
 
-	def add_int( self, code, label, min_val, max_val, step, default_val, enabled=True ):
+	def add_range( self, code, label, min_val, max_val, step, default_val, enabled=True ):
 		""" Add 'Integer Controler' menu item """
 		menu_item = self.add_label( code, label, enabled )
-		menu_item.cargo = IntControler( self, menu_item, min_val, max_val, step, default_val )
+		menu_item.cargo = RangeControler( self, menu_item, min_val, max_val, step, default_val )
 
 	def start( self ):
 		# Initialize the structure
