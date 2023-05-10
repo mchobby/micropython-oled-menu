@@ -137,6 +137,43 @@ class RangeControler:
 
 
 
+class ScreenControler:
+	""" Used to inform mainloop to draw its own screen/dashboard """
+	__slots__ = ( "owner", "parent", "selected", "_on_start", "_on_draw" )
+
+	def __init__(self, owner, parent, _on_screen_draw, _on_screen_start ):
+		self.owner = owner # owner = Oled Menu
+		self.parent = parent # Parent of controler = Menu item
+		self._on_start = _on_screen_start # Callback to initiate screen drawing
+		self._on_draw = _on_screen_draw # Callback to draw the screen
+		self.selected = False
+
+	def start( self ):
+		self.owner.enc.reset()
+		# wait for the button to be released
+		while self.owner.enc.button:
+			time.sleep_ms( 10 )
+		self.selected = False # become True when user press the Encoder Button
+		                      # once again when the configuration is done
+		self.owner.oled.fill( 0 ) # clear the screen
+		if self._on_start:
+			self._on_start( self ) # Caller is the controler
+		self.owner.oled.show()
+
+	def update( self ):
+		# return True when the user press the button to confirm
+		#oled = self.owner.oled
+		enc =  self.owner.enc
+		if self._on_draw != None:
+			self._on_draw( self, self.owner.oled, self.owner.enc )
+
+		# If button is pressed Then we do quit the controler
+		if enc.button:
+			self.selected = True
+
+		return self.selected
+
+
 # ------------------------------------------------------------------------------
 #   OLED MENU
 # ------------------------------------------------------------------------------
@@ -172,6 +209,12 @@ class OLED_MENU:
 		""" Add 'Integer Controler' menu item """
 		menu_item = self.add_label( code, label, enabled )
 		menu_item.cargo = RangeControler( self, menu_item, min_val, max_val, step, default_val )
+
+	def add_screen( self, code, label, on_draw, on_start=None, enabled=True ):
+		""" Add 'User Screen Controler' menu item """
+		menu_item = self.add_label( code, label, enabled )
+		menu_item.cargo = ScreenControler( self, menu_item, on_draw, on_start ) # Owner, Parent, Callback called when screen must be drawed
+
 
 	def start( self ):
 		# Initialize the structure
@@ -281,7 +324,6 @@ class OLED_MENU:
 		# Is the selected item have a dedocated controler ????
 		if self._selected and self.items[self._selected].cargo:
 			return self.items[self._selected].cargo.update()
-
 		# Call it as often as possible
 		# Return True if an entry is selected
 		_pos = self.enc.rel_position
@@ -303,11 +345,13 @@ class OLED_MENU:
 			if not(self._button_state) and _state: # released button
 				self.set_selected( self.get_focus_index() )
 				self._selected_time = time.time()
-				if self.items[ self._selected ].cargo != None:
-					self.items[ self._selected ].cargo.start() # Prepare controller to be displayed
 		self._button_state = _state
 
 		# Refresh the menu on screen
 		self.draw()
+		# Start the cargo (if it applies)
+		if self._selected != None:
+			if self.items[ self._selected ].cargo != None:
+				self.items[ self._selected ].cargo.start() # Prepare controller to be displayed
 
 		return self._selected != None

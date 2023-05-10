@@ -1,5 +1,7 @@
 # OLED MENU for MicroPython
 
+__Project currently under development__
+
 The aim of this project is to create an easy-to-control MicroPython system based on a 128 x 64 OLED screen and a clickable rotary encoder.
 
 ![Oled Menu presentation](docs/_static/oled-menu-presentation.jpg)
@@ -18,7 +20,8 @@ The aim of this project is to create an easy-to-control MicroPython system based
 * Enable property (avoids selection of disabled entries)
 * Various type of menu items:
 	* Label only
-	* Labeled Range (allowing to change an integer throught a range of values)
+	* Range : allowing to change an integer throught a range of values)
+	* Screen  : allow the main app to display/draw its own screen until the user press the button (display back the menu)
 
 
 # Library
