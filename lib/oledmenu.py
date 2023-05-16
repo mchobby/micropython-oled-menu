@@ -2,9 +2,42 @@
 # OLED Display 128 x 64 pixels (ADF 938) @ 0x3d
 # I2C Rotary Encoder (U135) @ 0x40
 
+""" MicroPython OLED Menu - use I2C OLED + I2C rotary encoder
+
+See project https://github.com/mchobby/micropython-oled-menu
+
+domeu, 15 may 2023, Initial Writing (shop.mchobby.be)
+----------------------------------------------------------------------------
+
+MCHobby invest time and ressource in developping project and libraries.
+It is a long and tedious work developed with Open-Source mind and freely available.
+IF you like our work THEN help us by buying your product at MCHobby (shop.mchobby.be).
+
+----------------------------------------------------------------------------
+Copyright (C) 2023  - Meurisse D. (shop.mchobby.be)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>
+"""
+
+__version__ = '0.0.2'
+
 from icons8 import NO
 from icontls import draw_icon
 import time
+
+def map(x, in_min, in_max, out_min, out_max):
+    return (x - in_min) * (out_max - out_min) // (in_max - in_min) + out_min
 
 # ------------------------------------------------------------------------------
 #   MENU ITEM
@@ -49,7 +82,10 @@ class MenuItem:
 			draw_icon( oled, NO, x+1, y+1, _fg  )
 			_x_off = 11
 
-		if (self.cargo != None) and ('value' in dir(self.cargo) ):
+		# menu Label is Cargo.label or Cargo.value or MenuItem.label
+		if (self.cargo != None) and ('label' in dir(self.cargo) ):
+			oled.text( self.label % self.cargo.label , x+_x_off, y+2, _fg )
+		elif (self.cargo != None) and ('value' in dir(self.cargo) ):
 			oled.text( self.label % self.cargo.value , x+_x_off, y+2, _fg )
 		else:
 			oled.text( self.label, x+_x_off, y+2, _fg )
@@ -110,8 +146,14 @@ class RangeControler:
 
 	def draw( self, oled ):
 		oled.fill( 0 )
-		oled.text( self.parent.label % self.value, 0, 0, 1 )
-
+		oled.text( "< SELECT VALUE >", 0, 0, 1 )
+		oled.text( self.parent.label % self.value, 0, 10, 1 )
+		oled.rect( 0, 20, oled.width, 12, 1 ) # Draw the boarder
+		wfill = map(self.value, self.min_val, self.max_val, 0, oled.width)
+		oled.rect( 0, 20, wfill, 12, 1, 1 ) # fill
+		oled.text( "%s"%self.min_val, 0, 34, 1 )
+		s = str(self.max_val)
+		oled.text( s, oled.width-len(s)*8, 34, 1 )
 		oled.show()
 
 
@@ -135,7 +177,66 @@ class RangeControler:
 
 		return self.selected
 
+class ComboControler:
+	""" Select a given value accross one-of-many values """
+	__slots__ = ( "owner", "parent", "selected", "_entries", "_value", "_submenu" )
 
+	def __init__(self, owner, parent, entries, default_code ):
+		""" entries is a list of (code,label) tuples. default: default code to select. """
+		self.owner = owner # owner = Oled Menu
+		self.parent = parent # Parent of controler = Menu item
+		self.selected = False # something have been selected in the screen
+		self._value = default_code # Current selection
+		self._entries = entries # [(code,value), ...]
+		self._submenu = None
+
+	def start( self ):
+		self.owner.enc.reset()
+		# wait for the button to be released
+		while self.owner.enc.button:
+			time.sleep_ms( 10 )
+		self.selected = False # become True when user press the Encoder Button
+		                      # once again when the configuration is done
+		self.owner.oled.fill( 0 ) # clear the screen
+		self.owner.oled.show()
+		self._submenu = OLED_MENU( self.owner.i2c )
+		_focus_idx = None
+		_idx = 0
+		for k,v in self._entries:
+			self._submenu.add_label( k, (">%s" if k==self._value else ":%s") % v )
+			if k==self._value:
+				_focus_idx = _idx
+			_idx += 1
+		self._submenu.start()
+		self._submenu.set_focus( _focus_idx )
+
+
+	def update( self ):
+		# return True when the user press the button to confirm
+		#oled = self.owner.oled
+		# -----> enc =  self.owner.enc
+		if self._submenu.update():
+			_entry = self._submenu.selected
+			print( "sub-select %s" % _entry ) # Show user selection
+			self.selected = True
+			self._value = _entry.code
+			del( self._submenu )
+			self._submenu = None
+			self.owner.enc.reset() # Reset the encoder for the callee menu
+
+		return self.selected
+
+	@property
+	def value( self ):
+		return self._value
+
+	@property
+	def label( self ):
+		""" returns the label corresponding to the selected value """
+		for k,v in self._entries:
+			if k==self._value:
+				return v
+		return "?%s?" % self._value
 
 class ScreenControler:
 	""" Used to inform mainloop to draw its own screen/dashboard """
@@ -215,6 +316,9 @@ class OLED_MENU:
 		menu_item = self.add_label( code, label, enabled )
 		menu_item.cargo = ScreenControler( self, menu_item, on_draw, on_start ) # Owner, Parent, Callback called when screen must be drawed
 
+	def add_combo( self, code, label, entries, default, enabled=True ):
+		menu_item = self.add_label( code, label, enabled )
+		menu_item.cargo = ComboControler( self, menu_item, entries, default, ) # Owner, Parent
 
 	def start( self ):
 		# Initialize the structure
