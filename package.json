@@ -1,0 +1,12 @@
+{
+  "urls": [
+		["oledmenu.py", "github:mchobby/esp8266-upy/micropython-oled-menu/lib/oledmenu.py"],
+    ["ssd1306.py", "github:mchobby/esp8266-upy/oled-ssd1306/lib/ssd1306-v1.10.py"],
+		["i2cenc.py", "github:mchobby/esp8266-upy/m5stack-u135/lib/i2cenc.py"],
+		["fbutil.py", "github:mchobby/esp8266-upy/FBGFX/lib/fbutil.py"],
+		["icons.py", "github:mchobby/esp8266-upy/FBGFX/lib/icons.py"],
+		["icons8.py", "github:mchobby/esp8266-upy/FBGFX/lib/icons8.py"],
+		["icontls.py", "github:mchobby/esp8266-upy/FBGFX/lib/icontls.py"]
+  ],
+  "version": "1.0"
+}

@@ -49,11 +49,19 @@ Turn the button right/left to change to move the focus.
 Click the encoder button to confirm the value and exits combo.
 
 # Library
+Prior to run the examples you will need to install the OLED Menu library and its dependencies
+
+On a WiFi capable plateform:
 
 ```
-mpremote mip install github:mchobby/esp8266-upy/oled-ssd1306
-mpremote mip install github:mchobby/esp8266-upy/m5stack-u135
-mpremote mip install github:mchobby/esp8266-upy/FBGFX
+>>> import mip
+>>> mip.install("github:mchobby/micropython-oled-menu")
+```
+
+Or via the mpremote utility :
+
+```
+mpremote mip install github:mchobby/micropython-oled-menu
 ```
 
 # Wiring
